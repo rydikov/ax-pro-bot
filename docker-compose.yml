@@ -1,0 +1,9 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    volumes:
+    - ./bot.py:/app/bot.py
+    stdin_open: true
+    tty: true
+    command: python /app/bot.py

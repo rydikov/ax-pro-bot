@@ -7,11 +7,9 @@ RUN apt-get install -y git
 
 WORKDIR /app
 
-RUN git clone https://github.com/rydikov/ax-pro.git
-
 COPY bot.py bot.py
 COPY requires.txt requires.txt
 
 RUN pip install -r requires.txt
 
-RUN pip install -e ax-pro
+RUN pip install -e git+https://github.com/rydikov/ax-pro.git@52ed273304a784d8bab5664ce8bd540b4bdddb9c#egg=axpro

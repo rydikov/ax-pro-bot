@@ -1,21 +1,19 @@
 
 import os
-import socket
 import asyncio
 import logging
 import sys
 
 
 from aiogram.client.bot import DefaultBotProperties
-from aiogram import F, Bot, Dispatcher, Router, types
+from aiogram import F, Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
-from aiogram.utils.markdown import hbold, hcode
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.utils.markdown import hbold
+
 
 from axpro import AxPro
-from axpro.axpro import UnexpectedResponseCodeError
 
 
 ALREADY_ARMED_STATUS_CODE = 1073774603
@@ -24,14 +22,13 @@ TOKEN = os.environ.get('TELEGRAM_TOKEN')
 TELEGRAM_ADMIN_IDS = os.environ.get('TELEGRAM_ADMIN_IDS').split(',')
 
 axpro = AxPro(
-    os.environ.get('AX_PRO_HOST'), 
-    os.environ.get('AX_PRO_USER'), 
+    os.environ.get('AX_PRO_HOST'),
+    os.environ.get('AX_PRO_USER'),
     os.environ.get('AX_PRO_PASSWORD')
 )
 
 dp = Dispatcher()
 admin_ids = [int(admin_id) for admin_id in TELEGRAM_ADMIN_IDS]
-
 dp.message.filter(F.from_user.id.in_(admin_ids))
 
 
@@ -39,12 +36,12 @@ dp.message.filter(F.from_user.id.in_(admin_ids))
 async def command_start_handler(message: Message) -> None:
     await message.answer(f"Hello, {hbold(message.from_user.full_name)}!")
 
-###
 
+###
 @dp.message(Command('arm'))
 async def command_arm_away(message: Message) -> None:
     resp = axpro.arm_away()
-    if resp['errorCode'] == 1073774603:
+    if resp['errorCode'] == ALREADY_ARMED_STATUS_CODE:
         axpro.disarm()
         resp = axpro.arm_away()
     answer = 'OK' if resp['statusCode'] == 1 else resp['errorMsg']
@@ -65,7 +62,7 @@ async def command_status(message: Message) -> None:
     for area in resp['SubSysList']:
         if area['SubSys']['enabled']:
             status = {
-                'disarm': 'Снято с охраны', 
+                'disarm': 'Снято с охраны',
                 'arm': 'Поставлено на охрану в ночном режиме',
                 'away': 'Поставлено на охрану при отсутствии людей'
             }[area['SubSys']['arming']]
@@ -90,11 +87,17 @@ async def command_temperature(message: Message) -> None:
 
 @dp.message(Command('beep'))
 async def command_beep(message: Message) -> None:
-    resp = axpro.siren_test(1)
+    
+    try:
+        _, siren_id = message.text.split()
+    except ValueError:
+        siren_id = 1
+
+    resp = axpro.siren_test(siren_id)
     await message.answer(resp['statusString'])
 
-###
 
+###
 @dp.message()
 async def default_handler(message: types.Message) -> None:
     await message.answer("Unknown command")
